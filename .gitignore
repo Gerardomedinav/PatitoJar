@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+env/
+ENV/
+
+# Environment variables (SECURITY: DO NOT COMMIT API KEYS)
+.env
+.env.local
+
+# Django
+db.sqlite3
+*.log
+
+# IDEs & System
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

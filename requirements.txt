@@ -1,0 +1,14 @@
+Django>=5.0
+djangorestframework>=3.14.0
+drf-spectacular>=0.27.0
+django-cors-headers>=4.3.0
+openai>=1.0.0
+google-genai>=0.1.0
+PyQt6>=6.6.0
+pyttsx3>=2.90
+requests>=2.31.0
+edge-tts>=7.0.0
+pygame>=2.6.0
+sounddevice>=0.4.6
+faster-whisper>=1.0.0
+numpy>=1.24.0
