@@ -289,6 +289,14 @@ def _generar_concepto_dinamico(user_input: str, code_context: str = "") -> str:
     )
 
 
+GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it"
+]
+
+
 # =============================================================================
 # SERVICIOS PRINCIPALES DE INTERACCIÓN CON CEREBRO IA CON SEGURIDAD TOTAL
 # =============================================================================
@@ -317,6 +325,7 @@ def consultar_patito_jar_stream(session_id: int, user_input: str, code_context: 
     mensajes_format.append({"role": "user", "content": prompt_con_contexto})
 
     groq_api_key = os.environ.get("GROQ_API_KEY")
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
     full_response = []
 
     if groq_api_key:
@@ -359,6 +368,32 @@ def consultar_patito_jar_stream(session_id: int, user_input: str, code_context: 
             except Exception as e:
                 logger.warning(f"Fallo conexión streaming con modelo Groq '{model_name}': {e}")
                 full_response.clear()
+
+    # Fallback streaming con Gemini 2.5 Flash si Groq falla o agota límite
+    if not full_response and gemini_api_key:
+        try:
+            from google import genai
+            client = genai.Client(api_key=gemini_api_key)
+            full_prompt = f"{SYSTEM_PROMPT}\n\n"
+            for m in mensajes_format[1:]:
+                full_prompt += f"{m['role'].upper()}: {m['content']}\n"
+            response = client.models.generate_content_stream(
+                model="gemini-2.5-flash",
+                contents=full_prompt,
+            )
+            for chunk in response:
+                if chunk.text:
+                    full_response.append(chunk.text)
+                    yield chunk.text
+
+            text_final = _clean_reasoning_tags("".join(full_response))
+            if text_final.strip():
+                Message.objects.create(session=session, role="user", content=user_input, code_context=code_context)
+                Message.objects.create(session=session, role="assistant", content=text_final)
+                return
+        except Exception as e:
+            logger.warning(f"Fallo conexión streaming con Gemini API: {e}")
+            full_response.clear()
 
     # Fallback no-stream si la API en vivo falla
     fallback_text = consultar_patito_jar(session_id, user_input, code_context)
