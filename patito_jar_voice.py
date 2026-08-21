@@ -336,18 +336,21 @@ def get_speaker_verifier() -> SpeakerVerifier:
         _GLOBAL_SPEAKER_VERIFIER = SpeakerVerifier()
     return _GLOBAL_SPEAKER_VERIFIER
 
-WAKE_WORDS = ["patitojar", "patito jar", "patito", "jarvis", "jarbis", "jervis", "yarvis", "patita", "pato"]
-STOP_WORDS = [
+WAKE_WORDS = ["patitojar", "patito jar", "patito", "jarvis", "jarbis", "jervis", "yarvis", "patita", "pato", "pata"]
+
+STOP_PHRASES = [
     "basta", "baasta", "bastante", "calla", "cállate", "callate", "calladito", "silencio", "silecio", "silensio",
-    "alto", "pausa", "stop", "listo", "suficiente", "parar", "pará", "parate", "quieto", "apaga", "apágar", "apágate", "apagate",
-    "corta", "cortá", "silenciar", "silenciate", "shh", "shhh", "callense", "cállense",
-    "patito basta", "patito cállate", "patito callate", "patito stop", "patito silencio", "patito alto", "basta ya", "basta che"
+    "stop", "listo", "suficiente", "parar de hablar", "pará de hablar", "parate de hablar", "corta la voz", "cortá la voz",
+    "shh", "shhh", "apágate", "apagate", "silenciar", "silenciate", "cállense", "basta ya", "basta che",
+    "pará", "parate", "alto ahí", "alto ahi"
 ]
+
 STOP_REGEX = re.compile(
     r'\b(basta|baasta|bastante|calla|cállate|callate|calladito|silencio|silecio|silensio|silenciar|silenciate|'
-    r'alto|pausa|stop|listo|suficiente|parar|pará|parate|corta|cortá|shh|shhh|apaga|apágate|apagate|quieto|callense|cállense)\b',
+    r'stop|listo|suficiente|parar de hablar|pará de hablar|corta|cortá|shh|shhh|apaga|apágate|apagate|quieto|callense|cállense)\b',
     flags=re.IGNORECASE
 )
+
 CORRECTION_WORDS = [
     "tengo otra pregunta", "otra pregunta", "corrijo mi pregunta", "corrijo",
     "reformulo mi pregunta", "reformulo", "cambio mi pregunta", "error en tu respuesta",
@@ -365,25 +368,40 @@ def parse_voice_command(text: str) -> Dict[str, Any]:
     if not cleaned:
         return {"has_wake_word": False, "is_stop": False, "is_correction": False, "query": ""}
 
-    is_stop = bool(STOP_REGEX.search(cleaned)) or any(sw in cleaned for sw in STOP_WORDS)
-    is_correction = any(cw in cleaned for cw in CORRECTION_WORDS)
-
+    # 1. Prioridad: Verificar presencia de Wake Word (Patito, Pato, PatitoJar, Pata, Patita, Jarvis)
     wake_found = None
     for ww in WAKE_WORDS:
-        if ww in cleaned:
+        if re.search(r'\b' + re.escape(ww) + r'\b', cleaned):
             wake_found = ww
             break
 
     has_wake_word = wake_found is not None
     query = ""
+
     if has_wake_word:
-        idx = cleaned_raw.find(wake_found)
+        idx = cleaned.find(wake_found)
         if idx != -1:
-            raw_q = text[idx + len(wake_found):].strip()
+            raw_q = cleaned[idx + len(wake_found):].strip()
             raw_q = re.sub(r'^[,\.\s\:\-]+', '', raw_q).strip()
-            query = raw_q if raw_q else text.strip()
+            query = raw_q if raw_q else cleaned.strip()
         else:
-            query = text.strip()
+            query = cleaned.strip()
+
+    # 2. Evaluar si es comando de detención (Stop)
+    # Si tiene Wake Word, SOLAMENTE es STOP si la consulta posterior es explícitamente un comando de detención (ej: "Patito basta", "Pata cállate", "Patito pará").
+    # Si contiene más texto de consulta (ej: "Patito para qué sirve...", "Pata alto rendimiento"), NO ES STOP y se procesa la pregunta.
+    is_stop = False
+
+    if has_wake_word:
+        query_cleaned = re.sub(r'^[,\.\s\:\-]+', '', query).strip()
+        if query_cleaned in ["basta", "calla", "cállate", "callate", "silencio", "stop", "shh", "pará", "parate", "alto", "alto ahí"]:
+            is_stop = True
+        elif any(query_cleaned.startswith(sp) for sp in ["basta", "cállate", "callate", "silencio", "stop", "pará de hablar", "corta la voz"]):
+            is_stop = True
+    else:
+        is_stop = bool(STOP_REGEX.search(cleaned)) or cleaned in ["alto", "pausa", "silencio", "stop", "basta", "shh", "callate", "cállate", "pará", "parate"]
+
+    is_correction = any(cw in cleaned for cw in CORRECTION_WORDS)
 
     return {
         "has_wake_word": has_wake_word,
@@ -1117,7 +1135,7 @@ if PYQT_AVAILABLE and QThread is not object:
 
                 if cmd["has_wake_word"]:
                     query_text = cmd["query"] if cmd["query"] else text
-                    clean_q = re.sub(r'^(patitojar|patito jar|patito|jarvis|jarbis|jervis|yarvis|patita|pato)\b', '', query_text.lower()).strip()
+                    clean_q = re.sub(r'^(patitojar|patito jar|patito|jarvis|jarbis|jervis|yarvis|patita|pato|pata)\b', '', query_text.lower()).strip()
                     clean_q = re.sub(r'^[,\.\s\:\-]+', '', clean_q).strip()
 
                     if clean_q:
