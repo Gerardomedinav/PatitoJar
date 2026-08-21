@@ -7,20 +7,20 @@
 ## 📸 Capturas de Pantalla (Screenshots)
 
 <p align="center">
-  <img src="patito_hud_icon.png" alt="PatitoJar HUD Icon" width="160" />
+  <img src="assets/screenshots/patito_hud_icon.png" alt="PatitoJar HUD Icon" width="160" />
 </p>
 
 ### 🖥️ 1. Interfaz Flotante Cyberpunk HUD en Acción con Consola Django & Pipeline
-![PatitoJar HUD en Consola](patito_hud_console.png)
+![PatitoJar HUD en Consola](assets/screenshots/patito_hud_console.png)
 
 ### 💬 2. Ventana de Diálogo y Asistencia de Depuración en Tiempo Real
-![PatitoJar HUD Window](patito_hud_window.png)
+![PatitoJar HUD Window](assets/screenshots/patito_hud_window.png)
 
 ---
 
 ## 🎙️ Pipeline de Voz y Procesamiento de Depuración (Voice & Debugging Pipeline)
 
-![PatitoJar Voice & Debugging Pipeline](patito_voice_pipeline.jpg)
+![PatitoJar Voice & Debugging Pipeline](assets/screenshots/patito_voice_pipeline.jpg)
 
 ### 🔄 Flujo de Ejecución Detallado:
 
@@ -135,12 +135,19 @@ PatitoJar/
 │   ├── settings.py                 # Configuración general, CORS, DRF y Apps
 │   ├── urls.py                     # Definición de rutas raíz y Swagger
 │   └── wsgi.py                     # Entrada WSGI
+├── assets/                         # Recursos gráficos y capturas de pantalla
+│   ├── graphics/                   # Gráficos e iconos del sistema (PNG, SVG)
+│   │   ├── patito_cool.png
+│   │   ├── patito_cool_hat.svg
+│   │   ├── patito_hud.png
+│   │   └── patito_jarvis.svg
+│   └── screenshots/                # Capturas de pantalla y diagramas para documentación
+│       ├── patito_voice_pipeline.jpg
+│       ├── patito_hud_console.png
+│       ├── patito_hud_window.png
+│       └── patito_hud_icon.png
 ├── patito_jar_overlay.py           # Cliente GUI Principal (PyQt6 Cyberpunk HUD Overlay)
 ├── patito_jar_voice.py             # Módulo de reconocimiento de voz y reproductor TTS
-├── patito_voice_pipeline.jpg       # Diagrama de arquitectura del pipeline de voz
-├── patito_hud_console.png          # Captura de pantalla de la interfaz con consola
-├── patito_hud_window.png           # Captura de pantalla de la ventana flotante HUD
-├── patito_hud_icon.png             # Icono animado Cyberpunk HUD de PatitoJar
 ├── INICIAR_PATITO.bat              # Script de inicio automatizado para Windows
 ├── manage.py                       # Administrador de comandos Django
 ├── requirements.txt                # Lista de dependencias del proyecto

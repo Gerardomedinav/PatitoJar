@@ -171,8 +171,14 @@ class FloatingDuckWidget(QWidget):
         self.float_offset = 0.0
 
         # Load Avatar Images (PNG / SVG)
-        png_path = os.path.join(os.path.dirname(__file__), "patito_cool.png")
-        svg_path = os.path.join(os.path.dirname(__file__), "patito_jarvis.svg")
+        assets_dir = os.path.join(os.path.dirname(__file__), "assets", "graphics")
+        png_path = os.path.join(assets_dir, "patito_cool.png")
+        if not os.path.exists(png_path):
+            png_path = os.path.join(os.path.dirname(__file__), "patito_cool.png")
+
+        svg_path = os.path.join(assets_dir, "patito_jarvis.svg")
+        if not os.path.exists(svg_path):
+            svg_path = os.path.join(os.path.dirname(__file__), "patito_jarvis.svg")
 
         if os.path.exists(png_path):
             self.duck_pixmap = QPixmap(png_path)
