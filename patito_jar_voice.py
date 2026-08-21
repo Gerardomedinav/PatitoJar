@@ -338,11 +338,16 @@ def get_speaker_verifier() -> SpeakerVerifier:
 
 WAKE_WORDS = ["patitojar", "patito jar", "patito", "jarvis", "jarbis", "jervis", "yarvis", "patita", "pato"]
 STOP_WORDS = [
-    "basta", "baasta", "bastante", "calla", "cállate", "callate", "silencio", "silecio", "silensio",
-    "alto", "pausa", "stop", "listo", "suficiente", "parar", "pará", "parate",
-    "corta", "cortá", "silenciar", "silenciate", "shh", "shhh",
-    "patito basta", "patito cállate", "patito callate", "patito stop", "patito silencio"
+    "basta", "baasta", "bastante", "calla", "cállate", "callate", "calladito", "silencio", "silecio", "silensio",
+    "alto", "pausa", "stop", "listo", "suficiente", "parar", "pará", "parate", "quieto", "apaga", "apágar", "apágate", "apagate",
+    "corta", "cortá", "silenciar", "silenciate", "shh", "shhh", "callense", "cállense",
+    "patito basta", "patito cállate", "patito callate", "patito stop", "patito silencio", "patito alto", "basta ya", "basta che"
 ]
+STOP_REGEX = re.compile(
+    r'\b(basta|baasta|bastante|calla|cállate|callate|calladito|silencio|silecio|silensio|silenciar|silenciate|'
+    r'alto|pausa|stop|listo|suficiente|parar|pará|parate|corta|cortá|shh|shhh|apaga|apágate|apagate|quieto|callense|cállense)\b',
+    flags=re.IGNORECASE
+)
 CORRECTION_WORDS = [
     "tengo otra pregunta", "otra pregunta", "corrijo mi pregunta", "corrijo",
     "reformulo mi pregunta", "reformulo", "cambio mi pregunta", "error en tu respuesta",
@@ -350,11 +355,17 @@ CORRECTION_WORDS = [
 ]
 
 def parse_voice_command(text: str) -> Dict[str, Any]:
-    cleaned = text.lower().strip()
+    if not text:
+        return {"has_wake_word": False, "is_stop": False, "is_correction": False, "query": ""}
+
+    cleaned_raw = text.lower().strip()
+    cleaned = re.sub(r'[^\w\s]', ' ', cleaned_raw)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+
     if not cleaned:
         return {"has_wake_word": False, "is_stop": False, "is_correction": False, "query": ""}
 
-    is_stop = any(sw in cleaned for sw in STOP_WORDS) or cleaned in ["alto", "pausa", "silencio", "stop", "basta", "shh", "callate", "cállate"]
+    is_stop = bool(STOP_REGEX.search(cleaned)) or any(sw in cleaned for sw in STOP_WORDS)
     is_correction = any(cw in cleaned for cw in CORRECTION_WORDS)
 
     wake_found = None
@@ -366,7 +377,7 @@ def parse_voice_command(text: str) -> Dict[str, Any]:
     has_wake_word = wake_found is not None
     query = ""
     if has_wake_word:
-        idx = cleaned.find(wake_found)
+        idx = cleaned_raw.find(wake_found)
         if idx != -1:
             raw_q = text[idx + len(wake_found):].strip()
             raw_q = re.sub(r'^[,\.\s\:\-]+', '', raw_q).strip()
@@ -1069,8 +1080,7 @@ if PYQT_AVAILABLE and QThread is not object:
                 now = time.time()
                 last_stop = getattr(self.parent_overlay, 'last_tts_stop_time', 0.0) if self.parent_overlay else 0.0
 
-                # 1. Comando explícito de detención ('basta', 'alto', 'cállate', 'stop', 'shh', 'pará') -> CERO LATENCIA
-                # ¡SE EJECUTA ANTES QUE EL SPEAKER VERIFIER Y SIN BLOQUEOS DE LOCUCIÓN!
+                # 1. Comando explícito de detención ('basta', 'alto', 'cállate', 'stop', 'shh', 'pará', 'silencio') -> CERO LATENCIA
                 if cmd["is_stop"]:
                     logger.info(f"⚡ [STOP INSTANTÁNEO] Comando '{text}' recibido. Cortando voz al instante.")
                     if self.parent_overlay:
@@ -1084,10 +1094,15 @@ if PYQT_AVAILABLE and QThread is not object:
                     logger.debug(f"Audio ignorado (Buffer de enfriamiento post-locución 0.2s): '{text}'")
                     return
 
-                # 3. Durante locución de Patito, descartar cualquier frase que no sea un comando de detención
+                # 3. Durante locución de Patito, interrupción fluida tipo Barge-in si el usuario empieza a hacer una nueva pregunta o corrección
                 if is_speaking:
-                    logger.debug(f"Audio ignorado durante locución (no es comando de detención): '{text}'")
-                    return
+                    if cmd["has_wake_word"] or cmd["is_correction"]:
+                        logger.info(f"⚡ [BARGE-IN / INTERRUPCIÓN FLUIDA] Usuario interrumpió la locución con nueva pregunta: '{text}'")
+                        if self.parent_overlay:
+                            self.parent_overlay.stop_audio()
+                    else:
+                        logger.debug(f"Audio ignorado durante locución (no es comando de detención ni nueva pregunta): '{text}'")
+                        return
 
                 # 4. Verificación de identidad de voz con Gerardo para consultas LLM (umbral 0.48)
                 verifier = get_speaker_verifier()

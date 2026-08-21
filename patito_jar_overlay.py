@@ -696,14 +696,13 @@ class PatitoJarOverlay(QWidget):
         """Corta la reproducción actual e inicia la escucha por micrófono para reanudar la conversación."""
         self.speech_queue = []
         self.is_speaking = False
-        self.last_tts_stop_time = 0.0
-        self.current_tts_worker = None
+        self.last_tts_stop_time = time.time()
         if self.current_tts_worker:
             self.current_tts_worker.stop_audio()
             self.current_tts_worker = None
         self.duck_avatar.set_state("IDLE")
         self.status_label.setText("Voz cortada. Escuchando tu respuesta...")
-        self.status_label.setStyleSheet("color: #ff3366;")
+        self.status_label.setStyleSheet("color: #ff3366; font-weight: bold;")
 
         if self.is_recording_voice:
             if self.current_stt_worker:
