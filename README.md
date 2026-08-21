@@ -4,6 +4,49 @@
 
 ---
 
+## 🎙️ Pipeline de Voz y Procesamiento de Depuración (Voice & Debugging Pipeline)
+
+![PatitoJar Voice & Debugging Pipeline](patito_voice_pipeline.jpg)
+
+### 🔄 Flujo de Ejecución Detallado:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Dev as Desarrollador (IDE / Micrófono)
+    participant HUD as PyQt6 Cyberpunk HUD Overlay (60 FPS)
+    participant STT as Faster-Whisper / SpeechRecognition (STT)
+    participant Backend as Django REST Framework & SQLite
+    participant LLM as Multi-LLM Engine (Groq / Gemini) & Tools
+    participant TTS as Edge-TTS (es-AR-TomasNeural)
+    participant Audio as Reproductor de Audio (Pygame)
+
+    Dev->>HUD: Captura de voz / Texto de código
+    HUD->>STT: Señal de audio raw (sounddevice)
+    STT-->>HUD: Transcripción (audio -> texto)
+    HUD->>Backend: POST /api/v1/chat/stream/ (Contexto + Pregunta)
+    Backend->>Backend: Agrega mensaje a conversación (SQLite)
+    Backend->>LLM: Inferencia Llama 3.3 70B / Tool Execution
+    LLM-->>Backend: Respuesta técnica de depuración
+    Backend->>TTS: Generar síntesis neuronal (text -> audio)
+    TTS-->>Backend: Stream binario de audio (.mp3 / .wav)
+    Backend-->>HUD: Respuesta HTTP Streaming + Audio Payload
+    HUD->>Audio: Reproducir voz neuronal
+    HUD->>Dev: Animación HUD "Hablando" + Respuesta en Pantalla
+```
+
+| Paso | Componente | Descripción |
+| :--- | :--- | :--- |
+| **① Captura Inicial** | Micrófono / Teclado | Captura de audio en vivo vía `sounddevice` o ingreso directo de código |
+| **② Interfaz HUD** | PyQt6 Cyberpunk HUD | Overlay flotante Always-on-Top (60 FPS) que cambia al estado **Escuchando 🎤** |
+| **③ Transcripción STT** | Faster-Whisper / SpeechRecognition | Convierte el flujo de audio capturado a texto (*Audio to Text*) |
+| **④ Context Aggregator** | Django REST Backend & SQLite | Administra el historial de la sesión (`ChatSession` / `Message`) |
+| **⑤ Inferencia Multi-IA & Tools**| Groq Llama 3.3 70B / Gemini 2.5 | Genera la solución técnica y ejecuta herramientas del SO (`ToolRegistry`) |
+| **⑥ Síntesis de Voz TTS** | Edge-TTS (`es-AR-TomasNeural`) | Sintetiza la respuesta textual a voz neuronal natural (*Text to Audio*) |
+| **⑦ Salida de Audio & Render** | Pygame Stream & Laser HUD | Reproduce la voz y muestra la animación concéntrica láser **Hablando 🗣️** |
+
+---
+
 ## 🚀 Funcionalidades Principales
 
 ### 🦆 1. Depuración Asistida en Tiempo Real (Rubber Duck Debugging)
@@ -12,7 +55,7 @@
 * **Memoria Contextual:** Registra el historial de conversaciones y contextos a corto y largo plazo mediante sesiones persistentes (`ChatSession` y `Message`).
 
 ### 🎨 2. Interfaz Gráfica Flotante Cyberpunk HUD (PyQt6)
-* **Overlay Translucido & Always-on-Top:** Ventana flotante sin bordes (*frameless*) que permanece visible sobre el IDE o editor de código.
+* **Overlay Translúcido & Always-on-Top:** Ventana flotante sin bordes (*frameless*) que permanece visible sobre el IDE o editor de código.
 * **Renderizado Animado a 60 FPS:** Animaciones concéntricas de anillos HUD, efectos láser y dinamismo visual según los estados del asistente:
   - 🎤 **Escuchando** (Captura de micrófono activa)
   - 🧠 **Pensando** (Procesando respuesta en backend)
@@ -80,6 +123,7 @@ PatitoJar/
 │   └── wsgi.py                     # Entrada WSGI
 ├── patito_jar_overlay.py           # Cliente GUI Principal (PyQt6 Cyberpunk HUD Overlay)
 ├── patito_jar_voice.py             # Módulo de reconocimiento de voz y reproductor TTS
+├── patito_voice_pipeline.jpg       # Diagrama de arquitectura del pipeline de voz
 ├── INICIAR_PATITO.bat              # Script de inicio automatizado para Windows
 ├── manage.py                       # Administrador de comandos Django
 ├── requirements.txt                # Lista de dependencias del proyecto
@@ -156,7 +200,7 @@ Copy-Item .env.example .env
 cp .env.example .env
 ```
 
-Edita el archivo `.env` recien creado con tu editor preferido (VS Code, Notepad, etc.) e ingresa tus claves de API:
+Edita el archivo `.env` recién creado con tu editor preferido (VS Code, Notepad, etc.) e ingresa tus claves de API:
 
 ```env
 GROQ_API_KEY=gsk_tu_clave_de_groq_aqui
